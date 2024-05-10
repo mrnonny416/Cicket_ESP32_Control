@@ -40,6 +40,7 @@ void controlling();
 int readFood();
 void food_state();
 void setDirect(String);
+String split(String, char, int);
 // enable time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -203,12 +204,25 @@ void processing() { /*มีหน้าที่ ดึงข้อมูลม
   sanitizeString(username);
   String basePath = username + "/controller/";
   int food_setting = getFirebaseInt(basePath + "food_control/setting");
-  if (readFood() < food_level_limit) {
-    setFirebaseBool(basePath + "food_control/control",
-                    readFood() < food_setting);
-
+  if (readFood() > food_setting) {
+    String schedule1 =
+        getFirebaseString(basePath + "food_control/schedule/case1");
+    String hours1 = split(schedule1, ':', 0);
+    String minutes1 = split(schedule1, ':', 1);
+    String schedule2 =
+        getFirebaseString(basePath + "food_control/schedule/case2");
+    String hours2 = split(schedule2, ':', 0);
+    String minutes2 = split(schedule2, ':', 1);
+    if ((timeClient.getHours() == hours1.toInt() &&
+         timeClient.getMinutes() == minutes1.toInt()) ||
+        (timeClient.getHours() == hours2.toInt() &&
+         timeClient.getMinutes() == minutes2.toInt())) {
+      setFirebaseBool(basePath + "food_control/control", true);
+    } else {
+      setFirebaseBool(basePath + "food_control/control", false);
+    }
   } else {
-    setFirebaseBool(basePath + "food_control/sensor", false);
+    setFirebaseBool(basePath + "food_control/control", false);
   }
   setFirebaseInt(basePath + "food_control/sensor",
                  readFood() > 0 ? readFood() : 0);
@@ -267,4 +281,22 @@ void setDirect(String dir) {
   } else {
     digitalWrite(stepDir, LOW); // todo
   }
+}
+
+String split(String str, char delimiter, int index) {
+  int startIndex = 0;
+  int endIndex = 0;
+  int delimiterCount = 0;
+
+  while (delimiterCount <= index) {
+    endIndex = str.indexOf(delimiter, startIndex); // หาตำแหน่งของ delimiter
+    if (delimiterCount == index) {
+      return str.substring(startIndex,
+                           (endIndex == -1) ? str.length() : endIndex);
+    }
+    startIndex = endIndex + 1;
+    delimiterCount++;
+  }
+
+  return "";
 }
