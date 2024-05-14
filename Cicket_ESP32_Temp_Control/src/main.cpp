@@ -3,7 +3,10 @@
 
 #include <env.h>
 
-#include "DHT.h" //DHT11 by Dhruba Saha@2.1.0
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
@@ -18,8 +21,6 @@ FirebaseConfig config;
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-DHT dht;
-
 bool signupOK = false;
 bool lastState = false;
 #define button1Temp D0
@@ -27,6 +28,7 @@ bool lastState = false;
 #define LCDSCLPIN D3
 #define LCDSDAPIN D4
 #define DHTPIN D5
+#define DHTTYPE DHT11 // DHT 11
 #define FanTempPIN D2
 #define FanHumidityPIN D6
 
@@ -36,7 +38,6 @@ int tempSettingData = 0;        // for check limit from firebase
 int humiditySettingData = 0;    // for check limit from firebase
 bool FanTempStatus = false;     // for enable solenoid
 bool FanHumidityStatus = false; // for enable solenoid
-
 int temp_high_limit = 27; // ถ้าสูงกว่า ต้องเปิดเพื่อลดอุณหภูมิ
 int humidity_high_limit = 70; // ถ้ามากกว่า ให้เปิด เพื่อลดความชื้น
 String username = USERNAME;
@@ -47,6 +48,8 @@ int readTemp();
 int readHumidity();
 String setText();
 void setMonitor();
+
+DHT_Unified dht(DHTPIN, DHTTYPE);
 // enable time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -69,6 +72,7 @@ void setup() {
   attachInterrupt(button1Temp, IO_INT_ISR, RISING);
   attachInterrupt(button2Hum, IO_INT_ISR_HUM, RISING);
   pinMode(FanTempPIN, OUTPUT);
+  pinMode(DHTPIN, INPUT);
   pinMode(FanHumidityPIN, OUTPUT);
   setMonitor();
   // set firebase
@@ -121,14 +125,28 @@ void ctrlHumidity(bool value) { digitalWrite(FanHumidityPIN, value); }
 
 // get data sensor
 int readTemp() {
-  float temperature = dht.getTemperature();
+  sensors_event_t event;
+  float temperature = 0;
+  dht.temperature().getEvent(&event);
+  if (isnan(event.temperature)) {
+    temperature = 0;
+  } else {
+    temperature = event.temperature;
+  }
   if (temperature > 100)
     temperature = 100;
   return (int)temperature;
 }
 
 int readHumidity() {
-  float humidity = dht.getHumidity();
+  sensors_event_t event;
+  float humidity = 0;
+  dht.humidity().getEvent(&event);
+  if (isnan(event.relative_humidity)) {
+    humidity = 0;
+  } else {
+    humidity = event.relative_humidity;
+  }
   if (humidity > 100)
     humidity = 100;
   return (int)humidity;
@@ -272,7 +290,7 @@ void controlling() { /*มีหน้าที่ดึงข้อมูลม
 
 String setText() {
   String Text = "TEMP:";
-  Text += String(int(dht.getTemperature())) + "℃";
+  Text += String(readTemp()) + "℃";
   int text_length = Text.length();
   // while (Text.length() < text_length + 5) {
   //   Text = " ";
@@ -280,7 +298,7 @@ String setText() {
   Text += "RTDB";
   Text += signupOK ? "✓" : "✕";
   Text += "HUMIDITY:";
-  Text += String(int(dht.getHumidity())) + "%";
+  Text += String(readHumidity()) + "%";
   return Text;
 }
 
