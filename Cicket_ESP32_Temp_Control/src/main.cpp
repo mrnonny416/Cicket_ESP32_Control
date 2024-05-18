@@ -21,15 +21,12 @@ FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows); 
-//LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 
 bool signupOK = false;
 bool lastState = false;
 #define button1Temp D0
 #define button2Hum D3
-//#define LCDSCLPIN D3
-//#define LCDSDAPIN D4
 #define DHTPIN D5
 #define DHTTYPE DHT11 // DHT 11
 #define FanTempPIN D7
@@ -41,8 +38,8 @@ int tempSettingData = 0;        // for check limit from firebase
 int humiditySettingData = 0;    // for check limit from firebase
 bool FanTempStatus = false;     // for enable solenoid
 bool FanHumidityStatus = false; // for enable solenoid
-int temp_high_limit = 27; // ถ้าสูงกว่า ต้องเปิดเพื่อลดอุณหภูมิ
-int humidity_high_limit = 70; // ถ้ามากกว่า ให้เปิด เพื่อลดความชื้น
+int temp_high_limit = 27;       // ถ้าสูงกว่า ต้องเปิดเพื่อลดอุณหภูมิ
+int humidity_high_limit = 70;   // ถ้ามากกว่า ให้เปิด เพื่อลดความชื้น
 String username = USERNAME;
 // declere function
 void processing();
@@ -57,37 +54,41 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
-void IRAM_ATTR IO_INT_ISR() {
- // Serial.println("FORCE FAN TEMP : " + String(!digitalRead(FanTempPIN)));
- // digitalWrite(FanTempPIN, !digitalRead(FanTempPIN));
+void IRAM_ATTR IO_INT_ISR()
+{
+  Serial.println("FORCE FAN TEMP : " + String(!digitalRead(FanTempPIN)));
+  digitalWrite(FanTempPIN, !digitalRead(FanTempPIN));
 }
 
-void IRAM_ATTR IO_INT_ISR_HUM() {
+void IRAM_ATTR IO_INT_ISR_HUM()
+{
   Serial.println("FORCE FAN HUMIDITY : " +
                  String(!digitalRead(FanHumidityPIN)));
   digitalWrite(FanHumidityPIN, !digitalRead(FanHumidityPIN));
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
 
   // initialize LCD
   lcd.init();
-  // turn on LCD backlight                      
+  // turn on LCD backlight
   lcd.backlight();
 
   // set sensor
 
   attachInterrupt(button1Temp, IO_INT_ISR, RISING);
-  //attachInterrupt(button2Hum, IO_INT_ISR_HUM, RISING);
-  //pinMode(FanTempPIN, OUTPUT);
+  attachInterrupt(button2Hum, IO_INT_ISR_HUM, RISING);
+  pinMode(FanTempPIN, OUTPUT);
   pinMode(DHTPIN, INPUT);
   pinMode(FanHumidityPIN, OUTPUT);
   setMonitor();
   // set firebase
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
   }
@@ -103,12 +104,16 @@ void setup() {
   Firebase.reconnectNetwork(true);
   fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */,
                          1024 /* Tx buffer size in bytes from 512 - 16384 */);
-  while (!signupOK) {
+  while (!signupOK)
+  {
     Serial.print("Sign up new user... ");
-    if (Firebase.signUp(&config, &auth, "", "")) {
+    if (Firebase.signUp(&config, &auth, "", ""))
+    {
       Serial.println("ok");
       signupOK = true;
-    } else {
+    }
+    else
+    {
       Serial.printf("%s\n", config.signer.signupError.message.c_str());
     }
     delay(300);
@@ -121,7 +126,8 @@ void setup() {
   timeClient.begin();
 }
 
-void loop() {
+void loop()
+{
   timeClient.update();
   setMonitor();
   processing();
@@ -129,17 +135,21 @@ void loop() {
 }
 
 //---------------control fan---------------------
-//void ctrlTemp(bool value) { digitalWrite(FanTempPIN, value); }
+void ctrlTemp(bool value) { digitalWrite(FanTempPIN, value); }
 void ctrlHumidity(bool value) { digitalWrite(FanHumidityPIN, value); }
 
 // get data sensor
-int readTemp() {
+int readTemp()
+{
   sensors_event_t event;
   float temperature = 0;
   dht.temperature().getEvent(&event);
-  if (isnan(event.temperature)) {
+  if (isnan(event.temperature))
+  {
     temperature = 0;
-  } else {
+  }
+  else
+  {
     temperature = event.temperature;
   }
   if (temperature > 100)
@@ -147,13 +157,17 @@ int readTemp() {
   return (int)temperature;
 }
 
-int readHumidity() {
+int readHumidity()
+{
   sensors_event_t event;
   float humidity = 0;
   dht.humidity().getEvent(&event);
-  if (isnan(event.relative_humidity)) {
+  if (isnan(event.relative_humidity))
+  {
     humidity = 0;
-  } else {
+  }
+  else
+  {
     humidity = event.relative_humidity;
   }
   if (humidity > 100)
@@ -162,59 +176,77 @@ int readHumidity() {
 }
 
 //-----------------read firebase---------------------
-bool getFirebaseBool(String path) {
-  if (Firebase.getBool(fbdo, path)) {
+bool getFirebaseBool(String path)
+{
+  if (Firebase.getBool(fbdo, path))
+  {
     return fbdo.to<bool>();
   }
   return false; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-int getFirebaseInt(String path) {
-  if (Firebase.getInt(fbdo, path)) {
+int getFirebaseInt(String path)
+{
+  if (Firebase.getInt(fbdo, path))
+  {
     return fbdo.to<int>();
   }
   return -1; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-String getFirebaseString(String path) {
-  if (Firebase.getString(fbdo, path)) {
+String getFirebaseString(String path)
+{
+  if (Firebase.getString(fbdo, path))
+  {
     return fbdo.to<const char *>();
   }
   return ""; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
 //--------------------set firebase-------------------
-void setFirebaseBool(String path, bool value) {
-  if (Firebase.setBool(fbdo, path.c_str(), value)) {
+void setFirebaseBool(String path, bool value)
+{
+  if (Firebase.setBool(fbdo, path.c_str(), value))
+  {
     Serial.println("Set OK : " + String(value) + " -> " + path);
-  } else {
+  }
+  else
+  {
     Serial.print("Error: ");
     Serial.println(fbdo.errorReason().c_str());
   }
 }
 
-void setFirebaseInt(String path, int value) {
-  if (Firebase.setInt(fbdo, path.c_str(), value)) {
+void setFirebaseInt(String path, int value)
+{
+  if (Firebase.setInt(fbdo, path.c_str(), value))
+  {
     Serial.println("Set OK : " + String(value) + " -> " + path);
-  } else {
+  }
+  else
+  {
     Serial.print("Error: ");
     Serial.println(fbdo.errorReason().c_str());
   }
 }
 
-void sanitizeString(String &input) {
+void sanitizeString(String &input)
+{
   const String disallowedChars = ".#$[]"; // อักขระที่ไม่อนุญาต
 
   // ลูปผ่านแต่ละอักขระที่ไม่อนุญาต
-  for (int i = 0; i < disallowedChars.length(); i++) {
-    char ch = disallowedChars[i]; // ดึงอักขระที่ต้องการ
+  for (int i = 0; i < disallowedChars.length(); i++)
+  {
+    char ch = disallowedChars[i];  // ดึงอักขระที่ต้องการ
     input.replace(String(ch), ""); // แทนที่อักขระที่ไม่อนุญาตด้วยสตริงว่าง
   }
 }
 
 // Time
-String getTimeText() {
-  if (timeClient.isTimeSet()) {
+String getTimeText()
+{
+  if (timeClient.isTimeSet())
+  {
     time_t epochTime = timeClient.getEpochTime();
     struct tm *ptm = gmtime((time_t *)&epochTime);
     int monthDay = ptm->tm_mday;
@@ -227,12 +259,15 @@ String getTimeText() {
   return "0/0/0";
 }
 
-void monitor_Temp(String basePath, int temp_setting) {
-  if (readTemp() < temp_high_limit) {
+void monitor_Temp(String basePath, int temp_setting)
+{
+  if (readTemp() < temp_high_limit)
+  {
     setFirebaseBool(basePath + "temperature/control",
                     readTemp() < temp_setting);
-
-  } else {
+  }
+  else
+  {
     setFirebaseBool(basePath + "temperature/control", false);
   }
   setFirebaseInt(basePath + "temperature/sensor",
@@ -242,12 +277,15 @@ void monitor_Temp(String basePath, int temp_setting) {
   Serial.println("Temp Setting : " + String(temp_setting) + " ℃");
 }
 
-void monitor_Humidity(String basePath, int humidity_setting) {
-  if (readHumidity() < humidity_setting) {
+void monitor_Humidity(String basePath, int humidity_setting)
+{
+  if (readHumidity() < humidity_setting)
+  {
     setFirebaseBool(basePath + "humidity/control",
                     readHumidity() < humidity_setting);
-
-  } else {
+  }
+  else
+  {
     setFirebaseBool(basePath + "humidity/control", false);
   }
   setFirebaseInt(basePath + "humidity/sensor",
@@ -257,7 +295,8 @@ void monitor_Humidity(String basePath, int humidity_setting) {
   Serial.println("Humidity Setting : " + String(humidity_setting) + " %");
 }
 // Controller
-void processing() { /*มีหน้าที่ ดึงข้อมูลมาแล้วเช็ค*/
+void processing()
+{ /*มีหน้าที่ ดึงข้อมูลมาแล้วเช็ค*/
   delay(2500);
   sanitizeString(username);
   String basePath = username + "/controller/";
@@ -267,60 +306,75 @@ void processing() { /*มีหน้าที่ ดึงข้อมูลม
   monitor_Humidity(basePath, humidity_setting);
 }
 
-void controlling() { /*มีหน้าที่ดึงข้อมูลมาแล้ววสั่งงาน*/
+void controlling()
+{ /*มีหน้าที่ดึงข้อมูลมาแล้ววสั่งงาน*/
   sanitizeString(username);
   String basePath = username + "/controller/";
   int temp_control = getFirebaseBool(basePath + "temperature/control");
   int humidity_control = getFirebaseBool(basePath + "humidity/control");
   // report temp
-  if (lastState != temp_control && lastState == false) {
+  if (lastState != temp_control && lastState == false)
+  {
     setFirebaseInt(basePath + "report/" + getTimeText() + "/temp_report/" +
                        String(timeClient.getEpochTime()),
                    1);
     lastState = true;
   }
-  if (temp_control == false) {
+  if (temp_control == false)
+  {
     lastState = false;
   }
   // report hum
-  if (lastState != humidity_control && lastState == false) {
+  if (lastState != humidity_control && lastState == false)
+  {
     setFirebaseInt(basePath + "report/" + getTimeText() + "/humidity_report/" +
                        String(timeClient.getEpochTime()),
                    1);
     lastState = true;
   }
-  if (humidity_control == false) {
+  if (humidity_control == false)
+  {
     lastState = false;
   }
 
-  //ctrlTemp(temp_control);
+  ctrlTemp(temp_control);
   ctrlHumidity(humidity_control);
 }
 
-String setText() {
+String setText()
+{
   String Text = "TEMP:";
-  Text += String(readTemp()) + "℃";
+  Text += String(readTemp()) + "C";
   int text_length = Text.length();
-  // while (Text.length() < text_length + 5) {
-  //   Text = " ";
-  // }
-  Text += "RTDB";
-  Text += signupOK ? "✓" : "✕";
+  // first - 16 - 5 = loop circle
+  int loopCircle = 16 - text_length - 6;
+  int loopCount = 0;
+  while (loopCount < loopCircle)
+  {
+    Text += " ";
+    loopCount += 1;
+  }
+  Text += "RTDB:";
+  Text += signupOK ? "/" : "X";
   Text += "HUMIDITY:";
   Text += String(readHumidity()) + "%";
   return Text;
 }
 
-void setMonitor() {
+void setMonitor()
+{
   String text = setText();
   Serial.print(text);
   Serial.println("");
   lcd.clear();
   lcd.setCursor(0, 0);
 
-  if (text.length() <= 16) {
+  if (text.length() <= 16)
+  {
     lcd.print(text);
-  } else {
+  }
+  else
+  {
     String firstLine = text.substring(0, 16);
     String secondLine = text.substring(16);
 
