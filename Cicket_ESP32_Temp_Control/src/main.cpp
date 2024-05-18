@@ -15,21 +15,24 @@
 #include <FirebaseESP32.h>
 #include <addons/TokenHelper.h>
 
+int lcdColumns = 16;
+int lcdRows = 2;
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows); 
+//LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 bool signupOK = false;
 bool lastState = false;
 #define button1Temp D0
-#define button2Hum D1
-#define LCDSCLPIN D3
-#define LCDSDAPIN D4
+#define button2Hum D3
+//#define LCDSCLPIN D3
+//#define LCDSDAPIN D4
 #define DHTPIN D5
 #define DHTTYPE DHT11 // DHT 11
-#define FanTempPIN D2
+#define FanTempPIN D7
 #define FanHumidityPIN D6
 
 int tempData = 0;               // from sensor
@@ -55,8 +58,8 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
 void IRAM_ATTR IO_INT_ISR() {
-  Serial.println("FORCE FAN TEMP : " + String(!digitalRead(FanTempPIN)));
-  digitalWrite(FanTempPIN, !digitalRead(FanTempPIN));
+ // Serial.println("FORCE FAN TEMP : " + String(!digitalRead(FanTempPIN)));
+ // digitalWrite(FanTempPIN, !digitalRead(FanTempPIN));
 }
 
 void IRAM_ATTR IO_INT_ISR_HUM() {
@@ -67,11 +70,17 @@ void IRAM_ATTR IO_INT_ISR_HUM() {
 
 void setup() {
   Serial.begin(9600);
+
+  // initialize LCD
+  lcd.init();
+  // turn on LCD backlight                      
+  lcd.backlight();
+
   // set sensor
 
   attachInterrupt(button1Temp, IO_INT_ISR, RISING);
-  attachInterrupt(button2Hum, IO_INT_ISR_HUM, RISING);
-  pinMode(FanTempPIN, OUTPUT);
+  //attachInterrupt(button2Hum, IO_INT_ISR_HUM, RISING);
+  //pinMode(FanTempPIN, OUTPUT);
   pinMode(DHTPIN, INPUT);
   pinMode(FanHumidityPIN, OUTPUT);
   setMonitor();
@@ -120,7 +129,7 @@ void loop() {
 }
 
 //---------------control fan---------------------
-void ctrlTemp(bool value) { digitalWrite(FanTempPIN, value); }
+//void ctrlTemp(bool value) { digitalWrite(FanTempPIN, value); }
 void ctrlHumidity(bool value) { digitalWrite(FanHumidityPIN, value); }
 
 // get data sensor
@@ -284,7 +293,7 @@ void controlling() { /*มีหน้าที่ดึงข้อมูลม
     lastState = false;
   }
 
-  ctrlTemp(temp_control);
+  //ctrlTemp(temp_control);
   ctrlHumidity(humidity_control);
 }
 

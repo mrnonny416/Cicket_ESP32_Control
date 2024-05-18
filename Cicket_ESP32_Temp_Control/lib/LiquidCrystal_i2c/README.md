@@ -1,9 +1,6 @@
-# Installation #
-Create a new folder called "LiquidCrystal_I2C" under the folder named "libraries" in your Arduino sketchbook folder.
-Create the folder "libraries" in case it does not exist yet. Place all the files in the "LiquidCrystal_I2C" folder.
+# LiquidCrystal_I2C
 
-# Usage #
-To use the library in your own sketch, select it from *Sketch > Import Library*.
+LiquidCrystal Arduino library for I2C LCD displays
 
--------------------------------------------------------------------------------------------------------------------
-This library is based on work done by DFROBOT (www.dfrobot.com).
+**Status: Archived** 
+This repository has been transfered to GitLab at https://gitlab.com/tandembyte/LCD_I2C

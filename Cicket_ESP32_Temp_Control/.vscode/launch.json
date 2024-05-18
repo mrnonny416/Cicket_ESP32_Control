@@ -9,12 +9,31 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "C/C++ Runner: Debug Session",
+            "type": "cppdbg",
+            "request": "launch",
+            "args": [],
+            "stopAtEntry": false,
+            "externalConsole": true,
+            "cwd": "d:/Project/Cicket_ESP32_Control-1.0.2/Cicket_ESP32_Temp_Control/src",
+            "program": "d:/Project/Cicket_ESP32_Control-1.0.2/Cicket_ESP32_Temp_Control/src/build/Debug/outDebug",
+            "MIMode": "gdb",
+            "miDebuggerPath": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "D:/PUBLIC/Max Project/Cicket_ESP32_Control/Cicket_ESP32_Temp_Control/.pio/build/esp8266nodev2/firmware.elf",
+            "executable": "D:/Project/Cicket_ESP32_Control/Cicket_ESP32_Temp_Control/.pio/build/esp8266nodev2/firmware.elf",
             "projectEnvName": "esp8266nodev2",
-            "toolchainBinDir": "C:/Users/Lenovo/.platformio/packages/toolchain-xtensa/bin",
+            "toolchainBinDir": "C:/Users/thawinkorn/.platformio/packages/toolchain-xtensa/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchTask": {
                 "type": "PlatformIO",
@@ -25,18 +44,18 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "D:/PUBLIC/Max Project/Cicket_ESP32_Control/Cicket_ESP32_Temp_Control/.pio/build/esp8266nodev2/firmware.elf",
+            "executable": "D:/Project/Cicket_ESP32_Control/Cicket_ESP32_Temp_Control/.pio/build/esp8266nodev2/firmware.elf",
             "projectEnvName": "esp8266nodev2",
-            "toolchainBinDir": "C:/Users/Lenovo/.platformio/packages/toolchain-xtensa/bin",
+            "toolchainBinDir": "C:/Users/thawinkorn/.platformio/packages/toolchain-xtensa/bin",
             "internalConsoleOptions": "openOnSessionStart"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "D:/PUBLIC/Max Project/Cicket_ESP32_Control/Cicket_ESP32_Temp_Control/.pio/build/esp8266nodev2/firmware.elf",
+            "executable": "D:/Project/Cicket_ESP32_Control/Cicket_ESP32_Temp_Control/.pio/build/esp8266nodev2/firmware.elf",
             "projectEnvName": "esp8266nodev2",
-            "toolchainBinDir": "C:/Users/Lenovo/.platformio/packages/toolchain-xtensa/bin",
+            "toolchainBinDir": "C:/Users/thawinkorn/.platformio/packages/toolchain-xtensa/bin",
             "internalConsoleOptions": "openOnSessionStart",
             "loadMode": "manual"
         }
