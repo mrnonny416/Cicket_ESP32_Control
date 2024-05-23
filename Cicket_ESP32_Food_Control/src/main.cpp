@@ -30,8 +30,8 @@ const int stepsPerRevolution = 2048; // todo
 int foodLevelData = 0;               // from sensor
 bool foodStatus = false;             // for enable solenoid
 String username = USERNAME;
-int food_level_limit = 1;
-int food_lowest_limit = 10; // in centimeters
+int food_level_limit = 30; // in centimeters
+int food_lowest_limit = 1; // in percentage
 
 // declere function
 void processing();
@@ -48,15 +48,18 @@ NTPClient timeClient(ntpUDP);
 // servo motor declear
 Servo myservo;
 
-void IRAM_ATTR IO_INT_ISR() {
-  if (foodStatus == false) {
+void IRAM_ATTR IO_INT_ISR()
+{
+  if (foodStatus == false)
+  {
     Serial.println("force Food control : on");
     foodStatus = true;
     food_state();
   }
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
   // set sensor
   attachInterrupt(button, IO_INT_ISR, RISING);
@@ -68,7 +71,8 @@ void setup() {
   // set firebase
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
     // todo : force_control
@@ -85,12 +89,16 @@ void setup() {
   Firebase.reconnectNetwork(true);
   fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */,
                          1024 /* Tx buffer size in bytes from 512 - 16384 */);
-  while (!signupOK) {
+  while (!signupOK)
+  {
     Serial.print("Sign up new user... ");
-    if (Firebase.signUp(&config, &auth, "", "")) {
+    if (Firebase.signUp(&config, &auth, "", ""))
+    {
       Serial.println("ok");
       signupOK = true;
-    } else {
+    }
+    else
+    {
       Serial.printf("%s\n", config.signer.signupError.message.c_str());
     }
     delay(300);
@@ -104,13 +112,18 @@ void setup() {
   timeClient.begin();
 }
 
-void loop() {
+void loop()
+{
   timeClient.update();
   processing();
-  if (food_level_limit < readFood()) {
+  Serial.println("food : " + String(readFood()) + ">" + String(food_lowest_limit));
+  if (readFood() >= food_lowest_limit)
+  {
     controlling();
-  } else {
-    Serial.println("Food is over!!!");
+  }
+  else
+  {
+    Serial.println("Food is over!!! not operate");
     delay(1000);
   }
 }
@@ -119,7 +132,8 @@ void loop() {
 void ctrlFood(bool value) { foodStatus = value; }
 
 // get data sensor
-int readFood() {
+int readFood()
+{
   long duration, percentage = 100;
   digitalWrite(ultraSonicPing, LOW);
   delayMicroseconds(2);
@@ -128,64 +142,82 @@ int readFood() {
   digitalWrite(ultraSonicPing, LOW);
   duration = pulseIn(ultraSonicIn, HIGH);
   duration = duration / 29 / 2; // in centimeters
-  return int((duration * food_lowest_limit) /
-             percentage); // return to percentage
+  return int((duration * percentage) /
+             food_level_limit); // return to percentage
 }
 
 //-----------------read firebase---------------------
-bool getFirebaseBool(String path) {
-  if (Firebase.getBool(fbdo, path)) {
+bool getFirebaseBool(String path)
+{
+  if (Firebase.getBool(fbdo, path))
+  {
     return fbdo.to<bool>();
   }
   return false; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-int getFirebaseInt(String path) {
-  if (Firebase.getInt(fbdo, path)) {
+int getFirebaseInt(String path)
+{
+  if (Firebase.getInt(fbdo, path))
+  {
     return fbdo.to<int>();
   }
   return -1; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-String getFirebaseString(String path) {
-  if (Firebase.getString(fbdo, path)) {
+String getFirebaseString(String path)
+{
+  if (Firebase.getString(fbdo, path))
+  {
     return fbdo.to<const char *>();
   }
   return ""; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
 //--------------------set firebase-------------------
-void setFirebaseBool(String path, bool value) {
-  if (Firebase.setBool(fbdo, path.c_str(), value)) {
+void setFirebaseBool(String path, bool value)
+{
+  if (Firebase.setBool(fbdo, path.c_str(), value))
+  {
     Serial.println("Set OK : " + String(value) + " -> " + path);
-  } else {
+  }
+  else
+  {
     Serial.print("Error: ");
     Serial.println(fbdo.errorReason().c_str());
   }
 }
 
-void setFirebaseInt(String path, int value) {
-  if (Firebase.setInt(fbdo, path.c_str(), value)) {
+void setFirebaseInt(String path, int value)
+{
+  if (Firebase.setInt(fbdo, path.c_str(), value))
+  {
     Serial.println("Set OK : " + String(value) + " -> " + path);
-  } else {
+  }
+  else
+  {
     Serial.print("Error: ");
     Serial.println(fbdo.errorReason().c_str());
   }
 }
 
-void sanitizeString(String &input) {
+void sanitizeString(String &input)
+{
   const String disallowedChars = ".#$[]"; // อักขระที่ไม่อนุญาต
 
   // ลูปผ่านแต่ละอักขระที่ไม่อนุญาต
-  for (int i = 0; i < disallowedChars.length(); i++) {
-    char ch = disallowedChars[i]; // ดึงอักขระที่ต้องการ
+  for (int i = 0; i < disallowedChars.length(); i++)
+  {
+    char ch = disallowedChars[i];  // ดึงอักขระที่ต้องการ
     input.replace(String(ch), ""); // แทนที่อักขระที่ไม่อนุญาตด้วยสตริงว่าง
   }
 }
 
 // Time
-String getTimeText() {
-  if (timeClient.isTimeSet()) {
+String getTimeText()
+{
+  if (timeClient.isTimeSet())
+  {
     time_t epochTime = timeClient.getEpochTime();
     struct tm *ptm = gmtime((time_t *)&epochTime);
     int monthDay = ptm->tm_mday;
@@ -199,12 +231,14 @@ String getTimeText() {
 }
 
 // Controller
-void processing() {
+void processing()
+{
   delay(1500);
   sanitizeString(username);
   String basePath = username + "/controller/";
   int food_setting = getFirebaseInt(basePath + "food_control/setting");
-  if (readFood() > food_setting) {
+  if (readFood() > food_setting)
+  {
     String schedule1 =
         getFirebaseString(basePath + "food_control/schedule/case1");
     String hours1 = split(schedule1, ':', 0);
@@ -216,12 +250,17 @@ void processing() {
     if ((timeClient.getHours() == hours1.toInt() &&
          timeClient.getMinutes() == minutes1.toInt()) ||
         (timeClient.getHours() == hours2.toInt() &&
-         timeClient.getMinutes() == minutes2.toInt())) {
+         timeClient.getMinutes() == minutes2.toInt()))
+    {
       setFirebaseBool(basePath + "food_control/control", true);
-    } else {
+    }
+    else
+    {
       setFirebaseBool(basePath + "food_control/control", false);
     }
-  } else {
+  }
+  else
+  {
     setFirebaseBool(basePath + "food_control/control", false);
   }
   setFirebaseInt(basePath + "food_control/sensor",
@@ -231,27 +270,34 @@ void processing() {
   Serial.println("food Level Setting : " + String(food_setting) + " %");
 }
 
-void controlling() { /*มีหน้าที่ดึงข้อมูลมาแล้ววสั่งงาน*/
+void controlling()
+{ /*มีหน้าที่ดึงข้อมูลมาแล้ววสั่งงาน*/
   sanitizeString(username);
   String basePath = username + "/controller/";
   int food_control = getFirebaseBool(basePath + "food_control/control");
-  if (lastState != food_control && lastState == false) {
+  if (lastState != food_control && lastState == false)
+  {
     setFirebaseInt(basePath + "report/" + getTimeText() + "/food_report/" +
                        String(timeClient.getEpochTime()),
                    1);
     lastState = true;
   }
-  if (food_control == false) {
+  if (food_control == false)
+  {
     lastState = false;
   }
   ctrlFood(food_control);
   food_state();
 }
 
-void food_state() {
-  if (foodStatus) {
-    if (readFood() > food_level_limit) {
-      for (int pos = 0; pos <= 380; pos++) {
+void food_state()
+{
+  if (foodStatus)
+  {
+    if (readFood() > food_lowest_limit)
+    {
+      for (int pos = 0; pos <= 380; pos++)
+      {
         myservo.write(pos);
         delay(1);
       }
@@ -259,41 +305,52 @@ void food_state() {
       int limit_round = 3;
       limit_round *= 400;
       setDirect("left");
-      for (int round = 0; round < limit_round; round++) {
+      for (int round = 0; round < limit_round; round++)
+      {
         digitalWrite(stepPulse, HIGH);
         delay(1);
         digitalWrite(stepPulse, LOW);
       }
       setDirect("right");
-      for (int round = 0; round < limit_round; round++) {
+      for (int round = 0; round < limit_round; round++)
+      {
         digitalWrite(stepPulse, HIGH);
         delay(1);
         digitalWrite(stepPulse, LOW);
       }
-    } else {
+    }
+    else
+    {
       foodStatus = false;
-      Serial.println("Food is over!!!");
+      Serial.println("Food is over!!! can't give food");
       delay(1000);
     }
   }
 }
 
-void setDirect(String dir) {
-  if (dir == "left") {
+void setDirect(String dir)
+{
+  if (dir == "left")
+  {
     digitalWrite(stepDir, HIGH); // todo
-  } else {
+  }
+  else
+  {
     digitalWrite(stepDir, LOW); // todo
   }
 }
 
-String split(String str, char delimiter, int index) {
+String split(String str, char delimiter, int index)
+{
   int startIndex = 0;
   int endIndex = 0;
   int delimiterCount = 0;
 
-  while (delimiterCount <= index) {
+  while (delimiterCount <= index)
+  {
     endIndex = str.indexOf(delimiter, startIndex);
-    if (delimiterCount == index) {
+    if (delimiterCount == index)
+    {
       return str.substring(startIndex,
                            (endIndex == -1) ? str.length() : endIndex);
     }
