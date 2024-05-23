@@ -8,7 +8,7 @@
 #include <FirebaseESP32.h>
 #include <addons/TokenHelper.h>
 
-#include <AccelStepper.h>
+#include <Servo.h>
 
 #define button D0
 
@@ -18,14 +18,12 @@
 #define stepPulse D3
 #define stepDir D4
 
-#define IN1 D5
-#define IN2 D6
-#define IN3 D7
-#define IN4 D8
+#define servoPin 14 // digital pin d5
 
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
+
 bool signupOK = false;
 bool lastState = false;
 const int stepsPerRevolution = 2048; // todo
@@ -34,6 +32,7 @@ bool foodStatus = false;             // for enable solenoid
 String username = USERNAME;
 int food_level_limit = 1;
 int food_lowest_limit = 10; // in centimeters
+
 // declere function
 void processing();
 void controlling();
@@ -41,11 +40,13 @@ int readFood();
 void food_state();
 void setDirect(String);
 String split(String, char, int);
+
 // enable time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
-AccelStepper stepper(AccelStepper::HALF4WIRE, IN1, IN3, IN2, IN4);
+// servo motor declear
+Servo myservo;
 
 void IRAM_ATTR IO_INT_ISR() {
   if (foodStatus == false) {
@@ -63,9 +64,7 @@ void setup() {
   pinMode(ultraSonicIn, INPUT);
   pinMode(stepPulse, OUTPUT);
   pinMode(stepDir, OUTPUT);
-  stepper.setMaxSpeed(500);
-  stepper.setAcceleration(100);
-  stepper.moveTo(stepsPerRevolution);
+  myservo.attach(servoPin);
   // set firebase
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
@@ -121,15 +120,16 @@ void ctrlFood(bool value) { foodStatus = value; }
 
 // get data sensor
 int readFood() {
-  long duration, percentage;
+  long duration, percentage = 100;
   digitalWrite(ultraSonicPing, LOW);
   delayMicroseconds(2);
   digitalWrite(ultraSonicPing, HIGH);
   delayMicroseconds(5);
   digitalWrite(ultraSonicPing, LOW);
   duration = pulseIn(ultraSonicIn, HIGH);
-  duration = duration / 29 / 2;                       // in centimeters
-  return int((percentage * food_lowest_limit) / 100); // return to percentage
+  duration = duration / 29 / 2; // in centimeters
+  return int((duration * food_lowest_limit) /
+             percentage); // return to percentage
 }
 
 //-----------------read firebase---------------------
@@ -199,7 +199,7 @@ String getTimeText() {
 }
 
 // Controller
-void processing() { /*มีหน้าที่ ดึงข้อมูลมาแล้วเช็ค*/
+void processing() {
   delay(1500);
   sanitizeString(username);
   String basePath = username + "/controller/";
@@ -251,7 +251,10 @@ void controlling() { /*มีหน้าที่ดึงข้อมูลม
 void food_state() {
   if (foodStatus) {
     if (readFood() > food_level_limit) {
-      stepper.run();
+      for (int pos = 0; pos <= 380; pos++) {
+        myservo.write(pos);
+        delay(1);
+      }
       delay(1000);
       int limit_round = 3;
       limit_round *= 400;
@@ -289,7 +292,7 @@ String split(String str, char delimiter, int index) {
   int delimiterCount = 0;
 
   while (delimiterCount <= index) {
-    endIndex = str.indexOf(delimiter, startIndex); // หาตำแหน่งของ delimiter
+    endIndex = str.indexOf(delimiter, startIndex);
     if (delimiterCount == index) {
       return str.substring(startIndex,
                            (endIndex == -1) ? str.length() : endIndex);
@@ -297,6 +300,5 @@ String split(String str, char delimiter, int index) {
     startIndex = endIndex + 1;
     delimiterCount++;
   }
-
   return "";
 }
