@@ -24,7 +24,8 @@ FirebaseConfig config;
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 
 bool signupOK = false;
-bool lastState = false;
+bool temp_lastState = false;
+bool humidity_lastState = false;
 #define button1Temp D0
 #define button2Hum D3
 #define DHTPIN D5
@@ -48,6 +49,17 @@ int readTemp();
 int readHumidity();
 String setText();
 void setMonitor();
+int getFirebaseInt(String);
+String getFirebaseString(String);
+bool getFirebaseBool(String);
+void setFirebaseBool(String, bool);
+void setFirebaseInt(String, int);
+String getTimeText();
+void sanitizeString(String &input);
+void monitor_Temp(String, int);
+void monitor_Humidity(String, int);
+void ctrlTemp(bool);
+void ctrlHumidity(bool);
 
 DHT_Unified dht(DHTPIN, DHTTYPE);
 // enable time
@@ -123,6 +135,46 @@ void loop() {
   setMonitor();
   processing();
   controlling();
+}
+
+void processing() { /*มีหน้าที่ ดึงข้อมูลมาแล้วเช็ค*/
+  delay(2500);
+  sanitizeString(username);
+  String basePath = username + "/controller/";
+  int temp_setting = getFirebaseInt(basePath + "temperature/setting");
+  int humidity_setting = getFirebaseInt(basePath + "humidity/setting");
+  monitor_Temp(basePath, temp_setting);
+  monitor_Humidity(basePath, humidity_setting);
+}
+
+void controlling() { /*มีหน้าที่ดึงข้อมูลมาแล้ววสั่งงาน*/
+  sanitizeString(username);
+  String basePath = username + "/controller/";
+  int temp_control = getFirebaseBool(basePath + "temperature/control");
+  int humidity_control = getFirebaseBool(basePath + "humidity/control");
+  // report temp
+  if (temp_lastState != temp_control && temp_lastState == false) {
+    setFirebaseInt(basePath + "report/" + getTimeText() + "/temp_report/" +
+                       String(timeClient.getEpochTime()),
+                   1);
+    temp_lastState = true;
+  }
+  if (temp_control == false) {
+    temp_lastState = false;
+  }
+  // report hum
+  if (humidity_lastState != humidity_control && humidity_lastState == false) {
+    setFirebaseInt(basePath + "report/" + getTimeText() + "/humidity_report/" +
+                       String(timeClient.getEpochTime()),
+                   1);
+    humidity_lastState = true;
+  }
+  if (humidity_control == false) {
+    humidity_lastState = false;
+  }
+
+  ctrlTemp(temp_control);
+  ctrlHumidity(humidity_control);
 }
 
 //---------------control fan---------------------
@@ -203,7 +255,7 @@ void sanitizeString(String &input) {
   const String disallowedChars = ".#$[]"; // อักขระที่ไม่อนุญาต
 
   // ลูปผ่านแต่ละอักขระที่ไม่อนุญาต
-  for (int i = 0; i < disallowedChars.length(); i++) {
+  for (unsigned int i = 0; i < disallowedChars.length(); i++) {
     char ch = disallowedChars[i]; // ดึงอักขระที่ต้องการ
     input.replace(String(ch), ""); // แทนที่อักขระที่ไม่อนุญาตด้วยสตริงว่าง
   }
@@ -225,9 +277,9 @@ String getTimeText() {
 }
 
 void monitor_Temp(String basePath, int temp_setting) {
-  if (readTemp() < temp_high_limit) {
+  if (readTemp() > temp_high_limit) {
     setFirebaseBool(basePath + "temperature/control",
-                    readTemp() < temp_setting);
+                    readTemp() > temp_setting);
   } else {
     setFirebaseBool(basePath + "temperature/control", false);
   }
@@ -239,9 +291,9 @@ void monitor_Temp(String basePath, int temp_setting) {
 }
 
 void monitor_Humidity(String basePath, int humidity_setting) {
-  if (readHumidity() < humidity_setting) {
+  if (readHumidity() > humidity_setting) {
     setFirebaseBool(basePath + "humidity/control",
-                    readHumidity() < humidity_setting);
+                    readHumidity() > humidity_setting);
   } else {
     setFirebaseBool(basePath + "humidity/control", false);
   }
@@ -252,48 +304,6 @@ void monitor_Humidity(String basePath, int humidity_setting) {
   Serial.println("Humidity Setting : " + String(humidity_setting) + " %");
 }
 // Controller
-void processing() { /*มีหน้าที่ ดึงข้อมูลมาแล้วเช็ค*/
-  delay(2500);
-  sanitizeString(username);
-  String basePath = username + "/controller/";
-  int temp_setting = getFirebaseInt(basePath + "temperature/setting");
-  int humidity_setting = getFirebaseInt(basePath + "humidity/setting");
-  setFirebaseBool(basePath + "temperature/control", temp_setting <= readTemp());
-  setFirebaseBool(basePath + "humidity/control",
-                  humidity_setting <= readHumidity());
-  monitor_Temp(basePath, temp_setting);
-  monitor_Humidity(basePath, humidity_setting);
-}
-
-void controlling() { /*มีหน้าที่ดึงข้อมูลมาแล้ววสั่งงาน*/
-  sanitizeString(username);
-  String basePath = username + "/controller/";
-  int temp_control = getFirebaseBool(basePath + "temperature/control");
-  int humidity_control = getFirebaseBool(basePath + "humidity/control");
-  // report temp
-  if (lastState != temp_control && lastState == false) {
-    setFirebaseInt(basePath + "report/" + getTimeText() + "/temp_report/" +
-                       String(timeClient.getEpochTime()),
-                   1);
-    lastState = true;
-  }
-  if (temp_control == false) {
-    lastState = false;
-  }
-  // report hum
-  if (lastState != humidity_control && lastState == false) {
-    setFirebaseInt(basePath + "report/" + getTimeText() + "/humidity_report/" +
-                       String(timeClient.getEpochTime()),
-                   1);
-    lastState = true;
-  }
-  if (humidity_control == false) {
-    lastState = false;
-  }
-
-  ctrlTemp(temp_control);
-  ctrlHumidity(humidity_control);
-}
 
 String setText() {
   String Text = "TEMP:";
