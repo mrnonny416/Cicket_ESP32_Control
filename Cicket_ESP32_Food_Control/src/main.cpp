@@ -142,9 +142,15 @@ void processing() {
          timeClient.getMinutes() == minutes2.toInt())) {
       setFirebaseBool(basePath + "food_control/control", true);
     } else {
+      Serial.println("Time now -->" + String(timeClient.getHours()) + ":" +
+                     String(timeClient.getMinutes()));
+      Serial.println("schedule 1->" + schedule1);
+      Serial.println("schedule 2->" + schedule2);
+      Serial.println("Set Firebase No Schedule");
       setFirebaseBool(basePath + "food_control/control", false);
     }
   } else {
+    Serial.println("Set Firebase Not Enought Food");
     setFirebaseBool(basePath + "food_control/control", false);
   }
   setFirebaseInt(basePath + "food_control/sensor",
@@ -217,8 +223,8 @@ int readFood() {
   digitalWrite(ultraSonicPing, LOW);
   duration = pulseIn(ultraSonicIn, HIGH);
   duration = duration / 29 / 2; // in centimeters
-  return int((duration * percentage) /
-             food_level_limit); // return to percentage
+  return 100 - int((duration * percentage) /
+                   food_level_limit); // return to percentage
 }
 
 bool getFirebaseBool(String path) {
