@@ -114,6 +114,9 @@ void setup() {
 
   // set time
   timeClient.begin();
+  int timezone = 3600;
+  int th_timezone = 7;
+  timeClient.setTimeOffset(timezone * th_timezone);
 }
 
 void loop() {
