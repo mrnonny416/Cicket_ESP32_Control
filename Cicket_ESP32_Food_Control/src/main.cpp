@@ -55,15 +55,18 @@ void stepMoterMove();
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
-void IRAM_ATTR IO_INT_ISR() {
-  if (foodStatus == false) {
+void IRAM_ATTR IO_INT_ISR()
+{
+  if (foodStatus == false)
+  {
     Serial.println("force Food control : on");
     foodStatus = true;
     food_state();
   }
 }
 
-void setup() {
+void setup()
+{
   Serial.begin(9600);
   // set sensor
   attachInterrupt(button, IO_INT_ISR, RISING);
@@ -80,7 +83,8 @@ void setup() {
   // set firebase
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   Serial.print("Connecting to Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
     // todo : force_control
@@ -97,12 +101,16 @@ void setup() {
   Firebase.reconnectNetwork(true);
   fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */,
                          1024 /* Tx buffer size in bytes from 512 - 16384 */);
-  while (!signupOK) {
+  while (!signupOK)
+  {
     Serial.print("Sign up new user... ");
-    if (Firebase.signUp(&config, &auth, "", "")) {
+    if (Firebase.signUp(&config, &auth, "", ""))
+    {
       Serial.println("ok");
       signupOK = true;
-    } else {
+    }
+    else
+    {
       Serial.printf("%s\n", config.signer.signupError.message.c_str());
     }
     delay(300);
@@ -119,18 +127,21 @@ void setup() {
   timeClient.setTimeOffset(timezone * th_timezone);
 }
 
-void loop() {
+void loop()
+{
   timeClient.update();
   processing();
   controlling();
 }
 
-void processing() {
+void processing()
+{
   delay(1500);
   sanitizeString(username);
   String basePath = username + "/controller/";
   int food_setting = getFirebaseInt(basePath + "food_control/setting");
-  if (readFood() > food_setting) {
+  if (readFood() > food_setting)
+  {
     String schedule1 =
         getFirebaseString(basePath + "food_control/schedule/case1");
     String hours1 = split(schedule1, ':', 0);
@@ -142,9 +153,12 @@ void processing() {
     if ((timeClient.getHours() == hours1.toInt() &&
          timeClient.getMinutes() == minutes1.toInt()) ||
         (timeClient.getHours() == hours2.toInt() &&
-         timeClient.getMinutes() == minutes2.toInt())) {
+         timeClient.getMinutes() == minutes2.toInt()))
+    {
       setFirebaseBool(basePath + "food_control/control", true);
-    } else {
+    }
+    else
+    {
       Serial.println("Time now -->" + String(timeClient.getHours()) + ":" +
                      String(timeClient.getMinutes()));
       Serial.println("schedule 1->" + schedule1);
@@ -152,7 +166,9 @@ void processing() {
       Serial.println("Set Firebase No Schedule");
       setFirebaseBool(basePath + "food_control/control", false);
     }
-  } else {
+  }
+  else
+  {
     Serial.println("Set Firebase Not Enought Food");
     setFirebaseBool(basePath + "food_control/control", false);
   }
@@ -163,50 +179,92 @@ void processing() {
   Serial.println("food Level Setting : " + String(food_setting) + " %");
 }
 
-void controlling() {
+void controlling()
+{
   sanitizeString(username);
   String basePath = username + "/controller/";
   int food_control = getFirebaseBool(basePath + "food_control/control");
-  if (lastState != food_control && lastState == false) {
+  if (lastState != food_control && lastState == false)
+  {
     setFirebaseInt(basePath + "report/" + getTimeText() + "/food_report/" +
                        String(timeClient.getEpochTime()),
                    1);
     lastState = true;
   }
-  if (food_control == false) {
+  if (food_control == false)
+  {
     lastState = false;
   }
   ctrlFood(food_control);
   food_state();
 }
 
-void food_state() {
-  if (foodStatus) {
-    if (readFood() > food_lowest_limit) {
+void food_state()
+{
+  if (foodStatus)
+  {
+    if (readFood() > food_lowest_limit)
+    {
       //--- server give food control here ↓
-      int pulse = 1024; // todo edit here
-      for (int round = 0; round < pulse; round++) {
+      int pulse = 16000; // todo edit here
+      Serial.println("");
+      Serial.print("Step Driver Moving");
+      for (int round = 0; round < pulse; round++)
+      {
+        if (round % 100 == 0)
+        {
+          Serial.print(".");
+        }
+        if (round % 1000 == 0)
+        {
+          Serial.print(String(round));
+        }
         stepMoterMove();
       }
       //--- server give food control here ↑
       delay(1000);
       //--- motor rail food control here ↓
-      int limit_round = 3; // todo edit here
-      limit_round *= 400;
+      int limit_round = 40; // todo edit here
+      limit_round *= 200;
       setDirect("left");
-      for (int round = 0; round < limit_round; round++) {
+      Serial.println("");
+      Serial.print("Rail Motor Moving : OUT");
+      for (int round = 0; round < limit_round; round++)
+      {
+        if (round % 100 == 0)
+        {
+          Serial.print(".");
+        }
+        if (round % 1000 == 0)
+        {
+          Serial.print(String(round));
+        }
         digitalWrite(stepPulse, HIGH);
         delay(1);
         digitalWrite(stepPulse, LOW);
       }
       setDirect("right");
-      for (int round = 0; round < limit_round; round++) {
+      Serial.println("");
+      Serial.print("Rail Motor Moving : BACK");
+      for (int round = 0; round < limit_round; round++)
+      {
+        if (round % 100 == 0)
+        {
+          Serial.print(".");
+        }
+        if (round % 1000 == 0)
+        {
+          Serial.print(String(round));
+        }
         digitalWrite(stepPulse, HIGH);
         delay(1);
         digitalWrite(stepPulse, LOW);
       }
+      Serial.println("");
       //--- motor rail food control here ↑
-    } else {
+    }
+    else
+    {
       foodStatus = false;
       Serial.println("Food is over!!! can't give food");
       delay(1000);
@@ -217,7 +275,8 @@ void food_state() {
 //----------↓↓↓function↓↓↓------------
 void ctrlFood(bool value) { foodStatus = value; }
 
-int readFood() {
+int readFood()
+{
   long duration, percentage = 100;
   digitalWrite(ultraSonicPing, LOW);
   delayMicroseconds(2);
@@ -230,55 +289,73 @@ int readFood() {
                    food_level_limit); // return to percentage
 }
 
-bool getFirebaseBool(String path) {
-  if (Firebase.getBool(fbdo, path)) {
+bool getFirebaseBool(String path)
+{
+  if (Firebase.getBool(fbdo, path))
+  {
     return fbdo.to<bool>();
   }
   return false; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-int getFirebaseInt(String path) {
-  if (Firebase.getInt(fbdo, path)) {
+int getFirebaseInt(String path)
+{
+  if (Firebase.getInt(fbdo, path))
+  {
     return fbdo.to<int>();
   }
   return -1; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-String getFirebaseString(String path) {
-  if (Firebase.getString(fbdo, path)) {
+String getFirebaseString(String path)
+{
+  if (Firebase.getString(fbdo, path))
+  {
     return fbdo.to<const char *>();
   }
   return ""; // ค่ากลับเมื่อไม่สามารถรับค่าได้
 }
 
-void setFirebaseBool(String path, bool value) {
-  if (Firebase.setBool(fbdo, path.c_str(), value)) {
+void setFirebaseBool(String path, bool value)
+{
+  if (Firebase.setBool(fbdo, path.c_str(), value))
+  {
     Serial.println("Set OK : " + String(value) + " -> " + path);
-  } else {
+  }
+  else
+  {
     Serial.print("Error: ");
     Serial.println(fbdo.errorReason().c_str());
   }
 }
 
-void setFirebaseInt(String path, int value) {
-  if (Firebase.setInt(fbdo, path.c_str(), value)) {
+void setFirebaseInt(String path, int value)
+{
+  if (Firebase.setInt(fbdo, path.c_str(), value))
+  {
     Serial.println("Set OK : " + String(value) + " -> " + path);
-  } else {
+  }
+  else
+  {
     Serial.print("Error: ");
     Serial.println(fbdo.errorReason().c_str());
   }
 }
 
-void sanitizeString(String &input) {
+void sanitizeString(String &input)
+{
   const String disallowedChars = ".#$[]";
-  for (unsigned int i = 0; i < disallowedChars.length(); i++) {
+  for (unsigned int i = 0; i < disallowedChars.length(); i++)
+  {
     char ch = disallowedChars[i];
     input.replace(String(ch), "");
   }
 }
 
-String getTimeText() {
-  if (timeClient.isTimeSet()) {
+String getTimeText()
+{
+  if (timeClient.isTimeSet())
+  {
     time_t epochTime = timeClient.getEpochTime();
     struct tm *ptm = gmtime((time_t *)&epochTime);
     int monthDay = ptm->tm_mday;
@@ -291,22 +368,29 @@ String getTimeText() {
   return "0/0/0";
 }
 
-void setDirect(String dir) {
-  if (dir == "left") {
+void setDirect(String dir)
+{
+  if (dir == "left")
+  {
     digitalWrite(stepDir, HIGH); // todo
-  } else {
+  }
+  else
+  {
     digitalWrite(stepDir, LOW); // todo
   }
 }
 
-String split(String str, char delimiter, int index) {
+String split(String str, char delimiter, int index)
+{
   int startIndex = 0;
   int endIndex = 0;
   int delimiterCount = 0;
 
-  while (delimiterCount <= index) {
+  while (delimiterCount <= index)
+  {
     endIndex = str.indexOf(delimiter, startIndex);
-    if (delimiterCount == index) {
+    if (delimiterCount == index)
+    {
       return str.substring(startIndex,
                            (endIndex == -1) ? str.length() : endIndex);
     }
@@ -316,19 +400,20 @@ String split(String str, char delimiter, int index) {
   return "";
 }
 
-void stepMoterMove() {
+void stepMoterMove()
+{
   digitalWrite(motorPin1, HIGH);
   digitalWrite(motorPin2, HIGH);
   digitalWrite(motorPin3, LOW);
   digitalWrite(motorPin4, LOW);
-  delay(1);
+  delay(2);
   digitalWrite(motorPin3, HIGH);
   digitalWrite(motorPin1, LOW);
-  delay(1);
+  delay(2);
   digitalWrite(motorPin4, HIGH);
   digitalWrite(motorPin2, LOW);
-  delay(1);
+  delay(2);
   digitalWrite(motorPin1, HIGH);
   digitalWrite(motorPin3, LOW);
-  delay(1);
+  delay(2);
 }
