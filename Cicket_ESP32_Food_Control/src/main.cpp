@@ -293,9 +293,9 @@ String getTimeText() {
 
 void setDirect(String dir) {
   if (dir == "left") {
-    digitalWrite(stepDir, HIGH); // todo
-  } else {
     digitalWrite(stepDir, LOW); // todo
+  } else {
+    digitalWrite(stepDir, HIGH); // todo
   }
 }
 
