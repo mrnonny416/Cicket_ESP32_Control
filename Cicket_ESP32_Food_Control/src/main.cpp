@@ -184,27 +184,52 @@ void food_state() {
   if (foodStatus) {
     if (readFood() > food_lowest_limit) {
       //--- server give food control here ↓
-      int pulse = 1024; // todo edit here
+      int pulse = 16000; // todo edit here
+      Serial.println("");
+      Serial.print("Step Driver Moving");
       for (int round = 0; round < pulse; round++) {
+        if (round % 100 == 0) {
+          Serial.print(".");
+        }
+        if (round % 1000 == 0) {
+          Serial.print(String(round));
+        }
         stepMoterMove();
       }
       //--- server give food control here ↑
       delay(1000);
       //--- motor rail food control here ↓
-      int limit_round = 3; // todo edit here
-      limit_round *= 400;
+      int limit_round = 40; // todo edit here
+      limit_round *= 200;
       setDirect("left");
+      Serial.println("");
+      Serial.print("Rail Motor Moving : OUT");
       for (int round = 0; round < limit_round; round++) {
+        if (round % 100 == 0) {
+          Serial.print(".");
+        }
+        if (round % 1000 == 0) {
+          Serial.print(String(round));
+        }
         digitalWrite(stepPulse, HIGH);
         delay(1);
         digitalWrite(stepPulse, LOW);
       }
       setDirect("right");
+      Serial.println("");
+      Serial.print("Rail Motor Moving : BACK");
       for (int round = 0; round < limit_round; round++) {
+        if (round % 100 == 0) {
+          Serial.print(".");
+        }
+        if (round % 1000 == 0) {
+          Serial.print(String(round));
+        }
         digitalWrite(stepPulse, HIGH);
         delay(1);
         digitalWrite(stepPulse, LOW);
       }
+      Serial.println("");
       //--- motor rail food control here ↑
     } else {
       foodStatus = false;
@@ -321,14 +346,14 @@ void stepMoterMove() {
   digitalWrite(motorPin2, HIGH);
   digitalWrite(motorPin3, LOW);
   digitalWrite(motorPin4, LOW);
-  delay(1);
+  delay(2);
   digitalWrite(motorPin3, HIGH);
   digitalWrite(motorPin1, LOW);
-  delay(1);
+  delay(2);
   digitalWrite(motorPin4, HIGH);
   digitalWrite(motorPin2, LOW);
-  delay(1);
+  delay(2);
   digitalWrite(motorPin1, HIGH);
   digitalWrite(motorPin3, LOW);
-  delay(1);
+  delay(2);
 }
