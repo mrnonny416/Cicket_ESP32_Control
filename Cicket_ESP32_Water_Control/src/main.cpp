@@ -8,6 +8,10 @@
 #include <FirebaseESP32.h>
 #include <addons/TokenHelper.h>
 
+#include <Servo.h>
+
+Servo servo360;
+
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -16,6 +20,7 @@ bool lastState = false;
 #define WaterSensorPIN A0
 #define SolenoidPIN D2
 #define button D0
+#define servoMoterPIN D5
 
 int waterlevelData = 0;      // from sensor
 int solenoidsettingData = 0; // for check limit from firebase
@@ -26,6 +31,7 @@ int water_level_limit = 1000;
 void processing();
 void controlling();
 int readWater();
+void controllingFood();
 // enable time
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
@@ -37,6 +43,10 @@ void IRAM_ATTR IO_INT_ISR() {
 
 void setup() {
   Serial.begin(9600);
+
+  // set motor for food board
+  servo360.attach(servoMoterPIN);
+
   // set sensor
   attachInterrupt(button, IO_INT_ISR, RISING);
   pinMode(SolenoidPIN, OUTPUT);
@@ -89,6 +99,7 @@ void loop() {
     Serial.println("Water Level is over!!!");
     delay(1000);
   }
+  controllingFood();
 }
 
 //---------------control water---------------------
@@ -202,4 +213,16 @@ void controlling() { /*มีหน้าที่ดึงข้อมูลม
     lastState = false;
   }
   ctrlWater(water_control);
+}
+
+void controllingFood() {
+  sanitizeString(username);
+  String basePath = username + "/controller/";
+  int food_wheel_control = getFirebaseBool(basePath + "food_control/control");
+  if (food_wheel_control) {
+    servo360.writeMicroseconds(2000);
+    delay(8000); // TODO: อาจไม่ใช้ ถ้าไม่ใช้ให้ลย หรือ ลดจำนวนลง
+    servo360.writeMicroseconds(1500);
+    delay(3000); // TODO: อาจไม่ใช้ ถ้าไม่ใช้ให้ลย หรือ ลดจำนวนลง
+  }
 }
